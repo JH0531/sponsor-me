@@ -1,6 +1,7 @@
 # 本地源数据：Eagle 原始文件、Noto 原始下载、厂商库原始文件
 # 这个目录只在本机存在，不进仓库
 /.*/
+!.github
 
 node_modules/
 assets/.tmp/
