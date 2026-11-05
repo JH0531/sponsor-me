@@ -32,6 +32,14 @@ Static first-frame fallback: ![PNG probe](probe/idle-light-zh-v1.png)
 |---|---|
 | ![light](probe/idle-light-zh-v1.png) | ![dark](probe/idle-dark-zh-v1.png) |
 
+## 6. APNG served with a `.png` extension (workaround)
+
+GitHub raw returns `application/octet-stream` + `nosniff` for `.apng`,
+but `image/png` for `.png`. An APNG is a PNG, so renaming the extension should
+make the browser play the animation.
+
+![APNG as PNG](probe/idle-light-zh-v1.anim.png)
+
 ---
 
 Probe assets: `probe/idle-light-zh-v1.apng` (16 frames), `probe/idle-light-zh-v1.png`,
