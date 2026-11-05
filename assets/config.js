@@ -16,7 +16,7 @@ window.SPONSOR_CONFIG = {
 
   meta: {
     // 开源后换成你自己的仓库
-    repo: 'https://github.com/yourname/sponsor-me',
+    repo: 'https://github.com/JH0531/sponsor-me',
     // 换成你的 paypal.me
     paypalUrl: 'https://paypal.me/Jasperhjx'
   },
