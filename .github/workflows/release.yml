@@ -1,0 +1,103 @@
+name: Publish release
+
+on:
+  push:
+    branches: [release]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preview the next version and file list without publishing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Fetch tags
+        run: |
+          git fetch --tags --force
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Compute version
+        id: ver
+        run: |
+          NEXT=$(node scripts/next-version.mjs)
+          CURRENT=$(node scripts/next-version.mjs --current)
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "Next version: $NEXT (current: ${CURRENT:-none})"
+
+      - name: Idempotency guard
+        id: guard
+        run: |
+          if git tag --points-at HEAD | grep -q .; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "HEAD is already tagged; nothing to publish."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dry run
+        if: ${{ inputs.dry_run == true || steps.guard.outputs.skip == 'true' }}
+        run: |
+          echo "Would publish ${{ steps.ver.outputs.next }} from ${{ github.sha }}"
+          git ls-tree -r --name-only HEAD
+
+      - name: Build archives
+        if: ${{ inputs.dry_run != true && steps.guard.outputs.skip != 'true' }}
+        run: |
+          V="${{ steps.ver.outputs.next }}"
+          D="sponsor-me-$V"
+          mkdir -p "dist/$D"
+          git archive HEAD | tar -x -C "dist/$D"
+          printf '%s\n' "$V" > "dist/$D/VERSION"
+          (cd dist && zip -qr "../$D.zip" "$D")
+          (cd dist && tar -czf "../$D.tar.gz" "$D")
+          sha256sum "$D.zip" "$D.tar.gz" > SHA256SUMS
+          echo "Built $D.zip and $D.tar.gz"
+
+      - name: Release notes
+        if: ${{ inputs.dry_run != true && steps.guard.outputs.skip != 'true' }}
+        run: |
+          PREV="${{ steps.ver.outputs.current }}"
+          if [ -n "$PREV" ] && git rev-parse -q --verify "refs/tags/$PREV" >/dev/null; then
+            git log --oneline "$PREV"..HEAD > notes.txt
+          else
+            printf 'Initial release.\n' > notes.txt
+          fi
+
+      - name: Publish
+        if: ${{ inputs.dry_run != true && steps.guard.outputs.skip != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V="${{ steps.ver.outputs.next }}"
+          D="sponsor-me-$V"
+          gh release create "$V" --target "${{ github.sha }}" --title "$V" --notes-file notes.txt --draft
+          gh release upload "$V" "$D.zip" "$D.tar.gz" SHA256SUMS --clobber
+          gh release edit "$V" --draft=false
+
+      - name: Cleanup on failure
+        if: ${{ failure() && inputs.dry_run != true && steps.guard.outputs.skip != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V="${{ steps.ver.outputs.next }}"
+          gh release delete "$V" --yes --cleanup-tag || true

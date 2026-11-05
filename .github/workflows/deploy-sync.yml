@@ -1,0 +1,52 @@
+name: Sync deploy branch
+
+# main 的部署相关文件变更时，把白名单内容重建为纯净的 deploy 分支。
+# README / docs/demo 演示素材的改动不会触发（它们本来就不进 deploy）。
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'assets/**'
+      - 'LICENSE'
+      - 'scripts/sync-deploy.mjs'
+      - '.github/workflows/deploy-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# 排队而非取消：避免两个 job 同时推送 deploy 互相覆盖
+concurrency:
+  group: deploy-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # commit-tree 需要身份；纯 Node + git plumbing，无 npm 依赖
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Print allowlist and assert
+        run: node scripts/sync-deploy.mjs --dry-run
+
+      - name: Sync and push deploy
+        run: node scripts/sync-deploy.mjs --push
+
+      - name: Verify remote deploy is clean
+        run: |
+          git fetch origin
+          node scripts/sync-deploy.mjs --verify
