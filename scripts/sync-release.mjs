@@ -4,7 +4,9 @@
  *
  * release 从 deploy 分叉。版本号只存在 tag、release 上不产生自己的提交，
  * 因此每次同步都应是 fast-forward。本脚本不产生新提交，只推进 release 指针。
- * 推送 release 后由 .github/workflows/release.yml 自动发版。
+ *
+ * release 分支只含白名单内容、不含 workflow 文件，push 事件无法触发发版；
+ * 因此推送后在默认分支 main 派发 repository_dispatch，由 release.yml 处理。
  *
  * 用法：
  *   node scripts/sync-release.mjs --dry-run    检查可否快进，不推送
@@ -105,7 +107,7 @@ if (release === deploy) {
 
 if (has('--dry-run')) {
   console.log('\ndry-run：未推送、未移动任何引用。');
-  console.log(`  执行 --push 将把 release 快进到 ${deploy.slice(0, 7)} 并触发自动发版。`);
+  console.log(`  执行 --push 将把 release 快进到 ${deploy.slice(0, 7)} 并派发发版事件。`);
   process.exit(0);
 }
 
@@ -116,4 +118,16 @@ if (!has('--push')) {
 
 git(['push', 'origin', `${deploy}:refs/heads/release`]);
 console.log(`[OK] ${release ? '快进更新' : '首次创建'} origin/release → ${deploy.slice(0, 7)}`);
-console.log('     release 分支的 push 将触发 .github/workflows/release.yml 自动发版。');
+
+// 在默认分支 main 派发事件；release.yml 定义在 main，才能读到 next-version.mjs
+try {
+  execFileSync('gh', [
+    'api', '-X', 'POST', 'repos/{owner}/{repo}/dispatches',
+    '-f', 'event_type=release-publish'
+  ], { encoding: 'utf8', stdio: 'inherit' });
+  console.log('[OK] 已派发 release-publish，main 上的 release.yml 将自动打包并发布。');
+} catch (e) {
+  console.warn('[WARN] release 分支已更新，但派发失败：' + String(e.message).split('\n')[0]);
+  console.warn('       可手动执行 gh workflow run release.yml --ref main 补发');
+  process.exitCode = 1;
+}

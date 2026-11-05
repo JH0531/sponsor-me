@@ -249,7 +249,7 @@ node scripts/sync-release.mjs --push      # 快进 release，触发自动发版
 node scripts/next-version.mjs             # 预览下一个版本号
 ```
 
-推送到 release 后，`.github/workflows/release.yml` 自动创建 tag 与 GitHub Release，并上传 zip / tar.gz 与 SHA256SUMS。版本号以 `V` 开头的 tag 为唯一事实源：初版 `V0.1.0`，第三段逢 10 进 1 到第二段，第二段逢 100 进 1 到首段，首段不设上限。也可通过 workflow_dispatch 的 dry run 预览而不发布。
+执行 `--push` 后会在默认分支派发发版事件；`.github/workflows/release.yml` 自动创建 tag 与 GitHub Release，并上传 zip / tar.gz 与 SHA256SUMS。版本号以 `V` 开头的 tag 为唯一事实源：初版 `V0.1.0`，第三段逢 10 进 1 到第二段，第二段逢 100 进 1 到首段，首段不设上限。也可通过 workflow_dispatch 的 dry run 预览而不发布。
 
 ## 无障碍与降级
 

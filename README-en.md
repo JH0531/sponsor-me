@@ -240,7 +240,7 @@ node scripts/sync-release.mjs --push      # fast-forward release, triggering a p
 node scripts/next-version.mjs             # preview the next version
 ```
 
-Pushing to `release` makes `.github/workflows/release.yml` create a tag and a GitHub Release with zip / tar.gz archives and SHA256SUMS. Version tags prefixed with `V` are the single source of truth: the initial version is `V0.1.0`, the third segment carries at 10 into the second, the second carries at 100 into the first, and the first has no limit. `workflow_dispatch` can preview with a dry run without publishing.
+Running `--push` dispatches a publish event on the default branch; `.github/workflows/release.yml` then creates a tag and a GitHub Release with zip / tar.gz archives and SHA256SUMS. Version tags prefixed with `V` are the single source of truth: the initial version is `V0.1.0`, the third segment carries at 10 into the second, the second carries at 100 into the first, and the first has no limit. `workflow_dispatch` can preview with a dry run without publishing.
 
 ## Accessibility & fallbacks
 
