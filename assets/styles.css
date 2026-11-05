@@ -1,0 +1,971 @@
+/* ==========================================================================
+   sponsor-me · styles
+   两套主题靠 <html data-theme> 切换，全部走 CSS 变量。
+   动画只动 transform / opacity / filter，避免触发 layout。
+   ========================================================================== */
+
+/* ── 主题令牌 ─────────────────────────────────────────────────────────── */
+
+:root {
+  --hero: clamp(168px, 42vmin, 256px);
+
+  --bg-0: #fffdf7;
+  --bg-1: #fff5e2;
+  --bg-2: #ffe3b8;
+  --bg-3: #f3cd97;
+  --bg-vignette: rgba(160, 110, 40, .12);
+
+  --ink-0: #4a3520;
+  --ink-1: #6b4d2c;
+  --ink-2: #94765a;
+  --caption-ink: #6b4d2c;
+  --caption-shadow: 0 1px 0 var(--bg-0);
+  --blurb-ink: #94765a;
+
+  --card: #ffffff;
+  --card-line: rgba(226, 170, 74, .55);
+  --card-shadow: 0 20px 46px rgba(120, 80, 20, .20), 0 2px 6px rgba(120, 80, 20, .10);
+
+  --pill-bg: linear-gradient(180deg, #fffefa 0%, #ffedc6 100%);
+  --pill-ink: #7a5520;
+  --pill-ring: rgba(245, 185, 66, .60);
+  --pill-glow: rgba(198, 140, 44, .22);
+
+  --icon-bg: rgba(255, 253, 248, .80);
+  --icon-ink: #8a6a45;
+  --icon-ring: rgba(245, 185, 66, .45);
+
+  --row-bg: linear-gradient(180deg, #fffaf0, #fff2d9);
+  --row-ring: rgba(230, 175, 80, .38);
+  --row-hover: rgba(245, 185, 66, .62);
+
+  --gold-2: #f5b942;
+  --gold-3: #d98f1e;
+
+  --glow-core: rgba(255, 226, 160, .58);
+  --glow-mid: rgba(255, 200, 100, .26);
+  --glow-far: rgba(255, 174, 68, .10);
+  --ray-color: rgba(255, 194, 80, .70);
+  --ray-core: rgba(255, 236, 176, 1);
+
+  --dm-back: #7a5622;
+  --dm-halo: rgba(255, 252, 245, .95);
+  --dm-front-bg: rgba(104, 72, 26, .38);
+  --dm-front-ink: #fffdf5;
+
+  --ease-pop: cubic-bezier(.22, 1.2, .3, 1);
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+}
+
+html[data-theme="dark"] {
+  --bg-0: #2a211a;
+  --bg-1: #1c1611;
+  --bg-2: #120d09;
+  --bg-3: #0a0705;
+  --bg-vignette: rgba(0, 0, 0, .55);
+
+  --ink-0: #f7edde;
+  --ink-1: #d9c8b0;
+  --ink-2: #9d8871;
+  /* 深色下文字压在金色光束上，必须比正文更亮，并带一层暗投影拉开对比 */
+  --caption-ink: #fff6e6;
+  --caption-shadow: 0 1px 3px rgba(0, 0, 0, .70), 0 0 16px rgba(0, 0, 0, .55);
+  --blurb-ink: #cbb69c;
+
+  --card: #2b2119;
+  --card-line: rgba(255, 214, 140, .26);
+  --card-shadow: 0 20px 46px rgba(0, 0, 0, .65), 0 2px 6px rgba(0, 0, 0, .45);
+
+  --pill-bg: linear-gradient(180deg, #3b2d21 0%, #2a2018 100%);
+  --pill-ink: #ffe3ad;
+  --pill-ring: rgba(255, 200, 110, .34);
+  --pill-glow: rgba(0, 0, 0, .55);
+
+  --icon-bg: rgba(255, 236, 205, .07);
+  --icon-ink: #e8d6bb;
+  --icon-ring: rgba(255, 214, 140, .22);
+
+  --row-bg: linear-gradient(180deg, #3a2c20, #30251b);
+  --row-ring: rgba(255, 214, 140, .22);
+  --row-hover: rgba(255, 214, 140, .40);
+
+  --gold-2: #ffcf6b;
+  --gold-3: #ffd98a;
+
+  --glow-core: rgba(255, 208, 128, .34);
+  --glow-mid: rgba(255, 186, 86, .15);
+  --glow-far: rgba(255, 166, 58, .05);
+  --ray-color: rgba(255, 190, 92, .30);
+  --ray-core: rgba(255, 224, 164, .62);
+
+  --dm-back: #efd9b6;
+  --dm-halo: rgba(16, 11, 7, .80);
+  --dm-front-bg: rgba(255, 236, 205, .14);
+  --dm-front-ink: #fff6e8;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
+  color: var(--ink-0);
+  background: var(--bg-1);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+  transition: background-color 300ms ease-out;
+}
+
+img { display: block; max-width: 100%; }
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── 舞台骨架：body 撑满，dock 常驻底部 ───────────────────────────────── */
+
+#stage {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 3.6vh, 38px);
+  padding: 18px 0 max(18px, env(safe-area-inset-bottom));
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.body {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+/* ── 背景 ─────────────────────────────────────────────────────────────── */
+
+.bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.bg__warm {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%,
+    var(--bg-0) 0%, var(--bg-1) 30%, var(--bg-2) 62%, var(--bg-3) 100%);
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+
+.is-live .bg__warm { opacity: 1; }
+
+.bg__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 46%, transparent 42%, var(--bg-vignette) 100%);
+  opacity: 0;
+  transition: opacity 400ms ease-out 200ms;
+}
+
+.is-live .bg__vignette { opacity: 1; }
+
+/* ── 场景 ─────────────────────────────────────────────────────────────── */
+
+.scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+/* 当前状态的场景回到文档流，由它决定 .body 的高度。
+   这样底部按钮永远紧跟在文案/卡片下面，而不是钉在屏幕最底端。 */
+[data-state="idle"] .scene--idle,
+[data-state="rolling"] .scene--idle,
+[data-state="launching"] .scene--idle,
+[data-state="channel"] .scene--channel {
+  position: relative;
+  inset: auto;
+}
+
+.scene--idle { z-index: 10; gap: clamp(8px, 2.4vmin, 22px); }
+
+.scene--channel {
+  z-index: 20;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease-out, visibility 0s linear 200ms;
+}
+
+[data-state="channel"] .scene--channel {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 200ms ease-out, visibility 0s;
+}
+
+[data-state="launching"] .scene--idle,
+[data-state="channel"] .scene--idle { pointer-events: none; }
+
+/* 入口场景不隐藏：让光晕的收束延续到卡片入场之后，
+   填住"杯子已消失、卡片还没转出来"那段空档。 */
+
+/* ── 光晕：径向暖光 + 五束金黄射光 ───────────────────────────────────── */
+
+.hero {
+  position: relative;
+  width: var(--hero);
+  height: var(--hero);
+  flex: 0 0 auto;
+}
+
+.halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 290%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+}
+
+.is-live .halo { animation: haloIn 700ms var(--ease-out) 80ms both; }
+
+@keyframes haloIn {
+  from { opacity: 0; transform: scale(.62); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* 内圈挖空，让光从杯子背后透出来，而不是盖在杯子上 */
+.halo__light {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: radial-gradient(circle closest-side,
+    transparent 0 18%, rgba(0,0,0,.45) 26%, #000 38%);
+  mask-image: radial-gradient(circle closest-side,
+    transparent 0 18%, rgba(0,0,0,.45) 26%, #000 38%);
+}
+
+.halo__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle closest-side,
+    var(--glow-core) 0%, var(--glow-mid) 24%,
+    var(--glow-far) 44%, transparent 70%);
+  filter: blur(6px);
+  animation: glowPulse 4200ms ease-in-out infinite alternate;
+}
+
+@keyframes glowPulse {
+  from { transform: scale(.94); opacity: .82; }
+  to   { transform: scale(1.06); opacity: 1; }
+}
+
+/* 5 束 × 20° 宽，周期 72° —— 360/72=5 整除，旋转时无接缝。
+   束宽/间距 = 1:3.6，看起来是"射光"而不是"细线"。 */
+.halo__rays {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from -10deg,
+    rgba(255, 200, 96, 0)       0deg,
+    var(--ray-color)            5.5deg,
+    var(--ray-core)             10deg,
+    var(--ray-color)            14.5deg,
+    rgba(255, 200, 96, 0)       20deg,
+    rgba(255, 200, 96, 0)       72deg);
+  -webkit-mask-image: radial-gradient(circle closest-side,
+    #000 14%, rgba(0,0,0,.82) 36%, rgba(0,0,0,.48) 56%,
+    rgba(0,0,0,.20) 76%, rgba(0,0,0,.05) 91%, transparent 100%);
+  mask-image: radial-gradient(circle closest-side,
+    #000 14%, rgba(0,0,0,.82) 36%, rgba(0,0,0,.48) 56%,
+    rgba(0,0,0,.20) 76%, rgba(0,0,0,.05) 91%, transparent 100%);
+  filter: blur(1.8px) saturate(1.12);
+  animation: raysSpin 26s linear infinite;
+  will-change: transform;
+}
+
+@keyframes raysSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── 主体：6 层嵌套，每层只有一个变换属主 ─────────────────────────────── */
+
+.hero__hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 24%;
+  display: block;
+}
+
+.hero__breathe,
+.hero__lift,
+.hero__drop,
+.hero__pop,
+.hero__hover {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.hero__breathe { animation: breathe 3400ms ease-in-out infinite alternate; }
+.hero__lift    { transform-origin: 50% 50%; }
+.hero__drop    { transform-origin: 50% 88%; }
+.hero__pop     { transform-origin: 50% 50%; }
+
+@keyframes breathe {
+  from { transform: scale(1); }
+  to   { transform: scale(1.025); }
+}
+
+.is-dropping .hero__breathe,
+.is-popping  .hero__breathe { animation-play-state: paused; }
+
+.hero__hover {
+  transition: transform 380ms var(--ease-pop);
+  will-change: transform;
+}
+
+.hero__hit:hover .hero__hover,
+.hero__hit:focus-visible .hero__hover { transform: scale(1.09); }
+
+/* Lottie 渲染进这个容器。矢量、带 alpha、可精确暂停，不存在编解码问题。 */
+.hero__stage {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.hero__stage svg,
+.finger__art svg,
+.finger__art img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+}
+
+.is-live .hero { animation: heroIn 720ms var(--ease-out) 220ms both; }
+
+@keyframes heroIn {
+  0%   { opacity: 0; transform: translateY(22px) scale(.72); }
+  78%  { opacity: 1; transform: translateY(0) scale(1.035); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+[data-state="launching"] .halo__glow {
+  animation: none; opacity: 1; transform: scale(1.35);
+  transition: transform 420ms var(--ease-out), opacity 420ms ease-out;
+}
+[data-state="launching"] .halo__rays { animation-duration: 8s; opacity: .85; }
+
+/* ── 手指 ─────────────────────────────────────────────────────────────── */
+
+.finger {
+  position: absolute;
+  right: -25%;
+  top: -26%;
+  width: 44%;
+  aspect-ratio: 1;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.is-live .finger { animation: fingerIn 560ms var(--ease-out) 780ms both; }
+
+@keyframes fingerIn {
+  from { opacity: 0; transform: translate(26px, -26px) scale(.6); }
+  to   { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+
+.finger__bob { display: block; width: 100%; height: 100%; }
+
+.is-live .finger__bob { animation: fingerBob 1900ms ease-in-out 1180ms infinite; }
+
+@keyframes fingerBob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(-13px, 13px, 0); }
+}
+
+.finger__art {
+  width: 100%;
+  height: 100%;
+  transform: rotate(60deg);
+  transform-origin: 50% 42%;
+  filter: drop-shadow(0 6px 10px rgba(180, 120, 30, .25));
+}
+
+/* ── 文案 ─────────────────────────────────────────────────────────────── */
+
+.idle__foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+}
+
+.idle__caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0;
+  font-size: clamp(15px, 3.5vmin, 19px);
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--caption-ink);
+  text-align: center;
+  text-shadow: var(--caption-shadow);
+  opacity: 0;
+}
+
+/* lucide chevrons-up，跟随文字颜色，不再用抢眼的 emoji */
+.cap__ico {
+  flex: 0 0 auto;
+  width: 1.05em;
+  height: 1.05em;
+  opacity: .78;
+}
+
+.idle__blurb {
+  margin: 0;
+  font-size: clamp(12px, 2.8vmin, 14px);
+  color: var(--blurb-ink);
+  text-align: center;
+  min-height: 1.4em;
+  opacity: 0;
+  text-shadow: var(--caption-shadow);
+}
+
+.is-live .idle__caption { animation: riseIn 520ms ease-out 900ms both; }
+.is-live .idle__blurb   { animation: riseIn 520ms ease-out 1000ms both; }
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── 底部控制条 ───────────────────────────────────────────────────────── */
+
+.dock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+/* 发射动画期间整条底栏让位，避免和炸开的杯子抢注意力 */
+[data-state="launching"] .footer {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dock__slot { position: relative; display: flex; }
+
+.icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  color: var(--icon-ink);
+  background: var(--icon-bg);
+  box-shadow:
+    0 6px 16px var(--pill-glow),
+    inset 0 0 0 1px var(--icon-ring);
+  transition: transform 200ms var(--ease-pop), color 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.icon-btn:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 22px var(--pill-glow),
+    inset 0 0 0 1px var(--row-hover);
+}
+
+.icon-btn:active { transform: scale(.94); }
+
+.icon-btn:focus-visible,
+.pill:focus-visible {
+  outline: 3px solid rgba(245, 185, 66, .75);
+  outline-offset: 3px;
+}
+
+.icon-btn svg { width: 20px; height: 20px; }
+
+/* 月亮 / 太阳 互斥显示 */
+.icon-btn__sun { display: none; }
+html[data-theme="dark"] .icon-btn__moon { display: none; }
+html[data-theme="dark"] .icon-btn__sun  { display: block; }
+
+.pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  padding: 0 28px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--pill-ink);
+  background: var(--pill-bg);
+  box-shadow:
+    0 10px 22px var(--pill-glow),
+    inset 0 0 0 1px var(--pill-ring),
+    inset 0 -2px 0 rgba(224, 154, 42, .14);
+  transition: box-shadow 200ms ease-out, color 200ms ease-out;
+  white-space: nowrap;
+}
+
+.pill:hover {
+  box-shadow:
+    0 14px 28px var(--pill-glow),
+    inset 0 0 0 1px var(--row-hover),
+    inset 0 -2px 0 rgba(224, 154, 42, .18);
+}
+
+.pill__label { position: relative; z-index: 1; }
+
+/* 窄屏：英文标签（"Sponsor something else?"）比中文长一倍，
+   375px 下会把两侧圆钮挤出视口。整条按钮行按比例收一档。 */
+@media (max-width: 430px) {
+  .dock { gap: 10px; padding: 0 16px; }
+  .icon-btn { width: 44px; height: 44px; }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .pill { padding: 0 20px; font-size: 14px; }
+}
+
+@media (max-width: 350px) {
+  .dock { gap: 8px; padding: 0 12px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .icon-btn svg { width: 17px; height: 17px; }
+  .pill { height: 46px; padding: 0 14px; font-size: 12.5px; }
+}
+
+/* ── 语言菜单 ─────────────────────────────────────────────────────────── */
+
+.lang-menu {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%) translateY(6px) scale(.96);
+  transform-origin: 50% 100%;
+  min-width: 148px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: var(--card-shadow), inset 0 0 0 1px var(--card-line);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 160ms ease-out, transform 200ms var(--ease-pop), visibility 0s linear 200ms;
+}
+
+.lang-menu.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0) scale(1);
+  transition: opacity 160ms ease-out, transform 200ms var(--ease-pop), visibility 0s;
+}
+
+.lang-menu__item {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 11px;
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--ink-1);
+  transition: background-color 140ms ease-out, color 140ms ease-out;
+}
+
+.lang-menu__item:hover { background: var(--row-bg); color: var(--ink-0); }
+
+.lang-menu__item[aria-selected="true"] {
+  color: var(--gold-3);
+  font-weight: 600;
+}
+
+/* ── 泡泡破裂的环形冲击波 ─────────────────────────────────────────────── */
+
+.pop-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 62%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 6px solid rgba(255, 226, 160, .95);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ── 打赏场景 ─────────────────────────────────────────────────────────── */
+
+.ch__stage {
+  position: relative;
+  z-index: 5;
+  perspective: 900px;
+  perspective-origin: 50% 44%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card {
+  width: min(88vw, 344px);
+  padding: 13px 13px 12px;
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--card-shadow), inset 0 0 0 1px var(--card-line);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.card.is-settled { transform: none; will-change: auto; }
+
+.card__face { display: block; }
+
+.footer {
+  position: relative;
+  z-index: 40;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 200ms ease-out;
+}
+
+.repo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 3px 10px 4px;
+  border-radius: 999px;
+  opacity: .85;
+  transition: color 160ms ease-out, background-color 160ms ease-out, opacity 160ms ease-out;
+}
+
+.repo:hover { color: var(--ink-1); background: var(--icon-bg); opacity: 1; }
+.repo svg { width: 12px; height: 12px; fill: currentColor; }
+
+/* 二维码卡：品牌标识 → 二维码 → 提示，纵向留白压到最小 */
+
+.face__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 原来约 39px，×3 给足呼吸感；矮屏按视口比例收敛，避免把卡片顶出屏幕 */
+  height: clamp(72px, 12.4vh, 112px);
+  padding-bottom: 6px;
+}
+
+.face__brand img { height: clamp(32px, 4.9vh, 44px); width: auto; }
+.face__brand--en img { height: clamp(27px, 4vh, 36px); }
+
+/* 支付宝的两个 SVG 宽高比不同：浅色 5.00:1（viewBox 2499.6×499.9），
+   深色 5.66:1（164×29）。按高度渲染时浅色会窄 13%，看着小一号。
+   改成按宽度对齐，两种主题占位一致。 */
+.face__brand--alipay img {
+  /* 深色版按 4.9vh 高、5.66 比例算出来的宽度，浅色版对齐到同一宽度 */
+  width: clamp(181px, 27.7vh, 249px);
+  height: auto;
+}
+
+.qr {
+  display: block;
+  width: 100%;
+  /* height 必须是 auto：<img width height> 会映射成表现层 height:500px，
+     只覆盖 width 的话会被撑成 318×500 的竖条，object-fit 再往里补白边。 */
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  object-fit: contain;
+  -webkit-user-drag: none;
+  /* 绝不加 filter / opacity / mix-blend-mode：会糊掉模块，长按识别率下降 */
+}
+
+.qr-hint {
+  margin: 9px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--ink-1);
+}
+
+.qr-hint strong { color: var(--gold-3); font-weight: 700; }
+
+/* 渠道选择 */
+
+.picker { display: flex; flex-direction: column; gap: 7px; }
+
+.picker__title {
+  margin: 2px 0 3px;
+  font-size: 15.5px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink-0);
+}
+
+.picker__sub {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+.picker__item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 11px;
+  border-radius: 15px;
+  text-align: left;
+  background: var(--row-bg);
+  box-shadow: inset 0 0 0 1px var(--row-ring);
+  transition: transform 160ms var(--ease-pop), box-shadow 160ms ease-out;
+}
+
+.picker__item:hover {
+  transform: translateY(-1px);
+  box-shadow: inset 0 0 0 1px var(--row-hover), 0 6px 14px var(--pill-glow);
+}
+
+.picker__item:active { transform: scale(.985); }
+
+.picker__mark {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--icon-bg);
+  box-shadow: inset 0 0 0 1px var(--row-ring);
+}
+
+.picker__mark img {
+  height: 22px;
+  width: auto;
+  max-width: 26px;
+  object-fit: contain;
+}
+
+/* 两个 PayPal 符号的 viewBox 比例不同（37.4×45 竖版 / 48×48 方版）。
+   固定 width 会让方版被压小，必须以高度为准、宽度自适应。 */
+.picker__mark--paypal img { height: 21px; max-width: 22px; }
+
+.picker__text { flex: 1 1 auto; min-width: 0; }
+
+.picker__name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-0);
+}
+
+.picker__note {
+  display: block;
+  font-size: 11.5px;
+  color: var(--ink-2);
+  margin-top: 1px;
+}
+
+.picker__arrow { flex: 0 0 auto; color: var(--ink-2); font-size: 15px; }
+
+/* PayPal 卡 */
+
+.paypal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 6px 8px;
+}
+
+.paypal__symbol { height: 54px; width: auto; max-width: 54px; object-fit: contain; }
+.paypal__word { height: 26px; width: auto; margin-top: 10px; }
+
+.paypal__hint {
+  margin: 12px 0 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  text-align: center;
+  color: var(--ink-2);
+  max-width: 24em;
+}
+
+.paypal__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 46px;
+  padding: 0 26px;
+  border-radius: 999px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(180deg, #3b7bd4, #2456a8);
+  box-shadow: 0 10px 20px rgba(31, 78, 156, .32), inset 0 1px 0 rgba(255,255,255,.26);
+  transition: transform 160ms var(--ease-pop), box-shadow 160ms ease-out;
+}
+
+.paypal__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(31, 78, 156, .40), inset 0 1px 0 rgba(255,255,255,.26);
+}
+
+.paypal__btn:active { transform: scale(.97); }
+
+.paypal__note {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+/* ── 弹幕 ─────────────────────────────────────────────────────────────── */
+
+.dm {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint;
+}
+
+.dm--back  { z-index: 2; }
+.dm--front { z-index: 12; }
+
+.dm__item {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 6px 4px;
+  color: var(--dm-back);
+  text-shadow: 0 0 8px var(--dm-halo), 0 0 3px var(--dm-halo);
+  will-change: transform;
+}
+
+.dm__item--front {
+  font-size: 17px;
+  color: var(--dm-front-ink);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--dm-front-bg);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+}
+
+.dm--static {
+  position: static;
+  display: block;
+  contain: none;
+  height: 20px;
+}
+
+.dm__quiet {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-2);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 400ms ease-out;
+}
+
+.dm__quiet.is-on { opacity: 1; }
+
+/* ── 礼花 ─────────────────────────────────────────────────────────────── */
+
+.fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 90;
+  pointer-events: none;
+}
+
+/* ── 主题切换的圆形遮罩 ───────────────────────────────────────────────── */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* ── 无障碍与降级 ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .halo__rays,
+  .halo__glow,
+  .hero__breathe,
+  .finger__bob,
+  .is-live .hero,
+  .is-live .halo,
+  .is-live .finger,
+  .is-live .idle__caption,
+  .is-live .idle__blurb {
+    animation: none !important;
+  }
+
+  .halo, .finger, .idle__caption, .idle__blurb { opacity: 1 !important; }
+
+  .hero__hover { transition: none; }
+}
+
+@media (hover: none) {
+  .hero__hit:active .hero__hover { transform: scale(1.08); }
+}
+
+@media (max-height: 560px) {
+  :root { --hero: clamp(120px, 30vmin, 180px); }
+  .scene--idle { gap: 6px; }
+  .card { width: min(72vw, 300px); }
+  .dock { padding-bottom: 12px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .pill { height: 44px; padding: 0 22px; font-size: 14px; }
+}
