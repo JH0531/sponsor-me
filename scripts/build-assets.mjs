@@ -80,14 +80,18 @@ function buildLottie(key, entry, warnings) {
 
   /*
    * trim：裁掉时间轴尾部的死区。
-   *   rocket —— 40 帧其实是两遍完全相同的 20 帧，整段播会看到动作重复一遍，
-   *             而且第 40 帧是空白。裁到 20 帧只留一遍。
    *   cookie —— 第 106 帧之后到结尾全是空白，会多出 200ms 的空画面。
+   *
+   * 不要拿它去"优化"看起来重复的动画。rocket 就踩过这个坑：
+   * 它的尾焰 / 速度线 / 反光各是一个 20 帧子合成，在 comp_0 里确实被放了两遍
+   * （ip 0–20 与 20–40），但机身窗口的抖动是 40 帧的往复（中→左→中→右→中）。
+   * 裁到 20 帧后只剩单向抖动，循环点还会跳一下；而且 333ms 一轮对"刷火箭"
+   * 这个动作来说太短。40 帧 = 667ms 才是作者设计的一轮。
    */
   let json = raw;
   if (entry.trim && entry.trim < data.op) {
     data.op = entry.trim;
-    // rest 可能落在被裁掉的那一段里（rocket 的 39 在第二遍），取模映射回第一遍
+    // rest 可能落在被裁掉的那一段里，取模映射回保留段
     rest = rest % entry.trim;
     json = JSON.stringify(data);
   }

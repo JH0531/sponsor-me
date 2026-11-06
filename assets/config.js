@@ -42,7 +42,9 @@ window.SPONSOR_CONFIG = {
     kiss:         { file: 'kiss.json',         kind: 'lottie', loop: 2000 },
     bomb:         { file: 'bomb.json',         kind: 'lottie', loop: 2333 },
     hundred:      { file: 'hundred.json',      kind: 'lottie', loop: 2250 },
-    rocket:       { file: 'rocket.json',       kind: 'lottie', loop: 333, trim: 20 },
+    // rocket 不裁：40 帧里尾焰/速度线/反光各是一个 20 帧子合成重复两遍，
+    // 但机身窗口的抖动是 40 帧往复；裁到 20 帧只剩单向抖动，且 333ms 一轮太短
+    rocket:       { file: 'rocket.json',       kind: 'lottie', loop: 667 },
     call:         { file: 'call.json',         kind: 'lottie', loop: 1933 },
     ghost:        { file: 'ghost.json',        kind: 'lottie', loop: 2400 },
     bulb:         { file: 'bulb.json',         kind: 'lottie', loop: 2400 },

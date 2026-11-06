@@ -115,12 +115,13 @@ media: {
 
 **You do not need to pick a rest frame.** Every Noto Lottie file carries a `rest` marker indicating where the author intended it to stop; the build script reads it and ships it alongside the animation as `window.__LOTTIE_REST__`. This matters: some animations start on an empty frame (🌈 / 🍦), some are sideways (🍪 at exactly 90°), and some begin as a single spark (🌟). Always stopping at frame 0 would freeze the picture somewhere unrecognizable.
 
-`trim` is used in two places, both to work around flaws in the source animations:
+`trim` is used in one place only — `cookie`'s timeline really does end in dead air:
 
 | key | Problem | Fix |
 | --- | --- | --- |
-| `rocket` | Its 40 frames are the same 20 frames twice; playing the whole thing repeats the motion and frame 40 is blank | `trim: 20`, `loop: 333` |
 | `cookie` | Everything after frame 106 is blank, adding 200ms of empty screen | `trim: 106`, `loop: 1767` |
+
+`rocket` looks like "the same segment played twice", but **do not trim it**: the exhaust, speed lines, and reflection are indeed 20-frame sub-comps placed twice in `comp_0` (`ip 0–20` and `20–40`), yet the hull and window shake is a 40-frame oscillation (centre → left → centre → right → centre). Trimming to 20 leaves only the one-sided shake and makes the loop point jump; on top of that, a 333ms cycle is too short for a "send a rocket" action. The full 40 frames = 667ms is the intended cycle.
 
 `items` is grouped by language and matched across languages by `media` name:
 
